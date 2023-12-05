@@ -1,7 +1,8 @@
 from django.contrib import admin
 
-# импортируем наши модели
-from .models import Post
-# и зарегистрируем их
+from .models import Author, Category, Post, Comment, PostCategory
+admin.site.register(Author)
+admin.site.register(Category)
 admin.site.register(Post)
-#admin.site.register(Category)
+admin.site.register(Comment)
+admin.site.register(PostCategory)
