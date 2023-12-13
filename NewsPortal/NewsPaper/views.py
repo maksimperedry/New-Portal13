@@ -1,40 +1,50 @@
-from django.http import HttpResponseNotFound
 from django.shortcuts import render
-from django.views.generic import ListView, DetailView
-# from django.views.generic.edit import FormView
-from  django.views.generic.base import View
-from .models import *
+from django.views.generic import ListView, UpdateView, CreateView, DetailView  # импортируем необходимые дженерики
 
-bad_names = ['incidents', 'Дибил', 'Пидар']
+from django.core.paginator import Paginator
 
-
-class AuthorsPage(ListView):
-    model = Author  # queryset = Author.objects.all()
-    context_object_name = "Authors"
-    template_name = 'news/authors.html'
+from .models import Product, Category
+from .filters import ProductFilter
+from .forms import ProductForm
 
 
-class PostDetail(View):
-    def get(self, request, pk):
-        ps = Post.objects.get(id=pk)
-        return render(request, "news/posts.html", {'ps':ps})
+# из списка на главной странице уберём всё лишнее
+class Products(ListView):
+    model = Product
+    template_name = 'product_list.html'
+    context_object_name = 'products'
+    ordering = ['-price']
+    paginate_by = 1
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['filter'] = ProductFilter(self.request.GET, queryset=self.get_queryset())
+        return context
 
 
-def news_page_list(request):
-    """ Представление для вывода страницы с новостями по заданию D3.6 """
-
-    newslist = Post.objects.all().order_by('-rating')[:6]
-
-    return render(request, 'news/news.html', {'newslist': newslist})
+# дженерик для получения деталей о товаре
+class ProductDetailView(DetailView):
+    template_name = 'sample_app/product_detail.html'
+    queryset = Product.objects.all()
 
 
-# class Myform(FormView):
-#     form_class = myform
-#     success_url = "/succsess/"
-#
-#     def form_valid(self, form):
-#         return super().form_valid(form)
+# дженерик для создания объекта. Надо указать только имя шаблона и класс формы, который мы написали в прошлом юните. Остальное он сделает за вас
+class ProductCreateView(CreateView):
+    template_name = 'sample_app/product_create.html'
+    form_class = ProductForm
 
+    # дженерик для редактирования объекта
+    class ProductUpdateView(UpdateView):
+        template_name = 'sample_app/product_create.html'
+        form_class = ProductForm
 
-def pageNotFound(request, exception):
-    return HttpResponseNotFound('<h1>Страница не найдена</h1>')
+        # метод get_object мы используем вместо queryset, чтобы получить информацию об объекте, который мы собираемся редактировать
+        def get_object(self, **kwargs):
+            id = self.kwargs.get('pk')
+            return Product.objects.get(pk=id)
+
+    # дженерик для удаления товара
+    class ProductDeleteView(DeleteView):
+        template_name = 'sample_app/product_delete.html'
+        queryset = Product.objects.all()
+        success_url = '/products/'
